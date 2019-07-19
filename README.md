@@ -1,4 +1,4 @@
-`# Stanford coursera algorithms class
+# Stanford coursera algorithms class
  My attempts at implementing the algorithms discussed in the coursera algorithms class.
  
  ## Algorithms discussed
