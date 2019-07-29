@@ -139,7 +139,7 @@ def buildRandMatrix(n):
     return A
 
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     
     nLim = 100
     stepSize = nLim // 10
