@@ -52,6 +52,7 @@ class Graph(object):
     
     def __init__(self, vertex_list = []):
         self.vertices = vertex_list
+        self.nodes = []
         self.num_vertices = 0
         self.merged_vertex_links = {}
         
@@ -66,7 +67,16 @@ class Graph(object):
             if v.get_id() == vert.get_id():
                 raise ValueError("Vertex " + str(vert.get_id()) + " already exists")
         self.num_vertices += 1
+        self.nodes.append(vert.get_id())
+        self.merged_vertex_links[vert.get_id()] = []
         self.vertices.append(vert)
+    
+    def del_vertex(self, v: Vertex):
+        if v.get_id() in self.get_nodes():
+            self.vertices.remove(v)
+            self.num_vertices -= 1
+        else:
+            raise KeyError("Vertex " + str(v.get_id()) + " does not exist")
     
     def get_vertex(self, node):
         for v in self.vertices:
@@ -75,10 +85,7 @@ class Graph(object):
         return None
     
     def get_nodes(self):
-        nodes = []
-        for v in self.vertices:
-            nodes.append(v.get_id())
-        return nodes
+        return self.nodes
     
     def add_edge(self, frm, to, weight = 1, directional = False):
         if frm not in self.get_nodes():
@@ -96,9 +103,7 @@ class Graph(object):
             if not directional:
                 self.get_vertex(to).add_adjacent(frm, weight)
     
-    def del_vertex(self, v: Vertex):
-        if v.get_id() in self.get_nodes():
-            self.vertices.remove(v)
+
     
     def __str__(self):
         toPrint = ""
@@ -123,10 +128,12 @@ class Graph(object):
             raise KeyError("Nodes " + str(node1) + " and " + str(node2) + " are not adjacent")
         
         # Keep track of merged vertices
-        if node1 not in self.merged_vertex_links:
-            self.merged_vertex_links[node1] = [node2]
-        else:
-            self.merged_vertex_links[node1].append(node2)
+        # Add node2 to node1
+        self.merged_vertex_links[node1].append(node2)
+        # Add all the links to node1 links
+        self.merged_vertex_links[node1] += self.merged_vertex_links[node2]
+        # Delete node2 merged vertex links as the node no longer exists
+        del self.merged_vertex_links[node2]
         
         for adj2 in v2.get_adjacent():
             if adj2 in v1.get_adjacent():
