@@ -58,14 +58,16 @@ class Graph(object):
         else:
             vertex_dict = {}          
         self.vertices = vertex_dict
-        self.nodes = [n for n in vertex_dict]
-        self.num_vertices = len(self.nodes)
+        self.num_vertices = len(self.vertices)
         self.merged_vertex_links = {}
-        for n in self.nodes:
+        for n in self.vertices:
             self.merged_vertex_links[n] = []
         
     def __iter__(self):
         return iter(self.vertices)
+    
+    def __len__(self):
+        return len(self.vertices)
 
     def get_vertices(self):
         return [self.vertices[n] for n in self.vertices]
@@ -75,27 +77,26 @@ class Graph(object):
             if v.get_id() == vert.get_id():
                 raise ValueError("Vertex " + str(vert.get_id()) + " already exists")
         self.num_vertices += 1
-        self.nodes.append(vert.get_id())
         self.merged_vertex_links[vert.get_id()] = []
         self.vertices[vert.get_id()] = vert
+        
+    def get_vertex(self, node):
+        try:
+            v = self.vertices[node]
+        except:
+            raise KeyError("Node " + str(node) + " does not exist in graph")
+        return v
     
     def del_vertex(self, node):
-        if node not in self.get_nodes():
-            raise KeyError("Node " + str(node) + " does not exist")
-            
-        vert = self.get_vertex(node)
-        self.vertices.remove(vert)
-        # update other vertices
-        for vOther in self.get_vertices():
-            if node in vOther.get_adjacent():
-                vOther.del_adjacent(node)
-        self.num_vertices -= 1
-    
-    def get_vertex(self, node):
-        for v in self.vertices:
-            if v.get_id() == node:
-                return v
-        return None
+        try:
+            del self.vertices[node]
+            # update other vertices
+            for nOther in self.vertices:
+                if node in self.vertices[nOther].get_adjacent():
+                    self.vertices[nOther].del_adjacent(node)
+            self.num_vertices -= 1
+        except:
+            raise KeyError("Node " + str(node) + " does not exist") 
     
     def get_nodes(self):
         return self.nodes
@@ -118,7 +119,8 @@ class Graph(object):
                 
     def __str__(self):
         toPrint = ""
-        for v in self.vertices:
+        for n in self.vertices:
+            v = self.vertices[n]
             toPrint = toPrint + Vertex.__str__(v) + ", "
         return "<" + toPrint[:-2] + ">"
     
@@ -184,7 +186,7 @@ class Graph(object):
         A = [a]
         A_nodes = [a.get_id()]
         # ignore first arbitrary vertex
-        verts = self.vertices[1:]
+        verts = self.get_vertices()[1:]
         while len(A) != self.num_vertices:
             maxVert = verts[0]
             maxNode = maxVert.get_id()
@@ -214,10 +216,10 @@ class Graph(object):
         return C_left, C_right, maxNode_weight_sum # returns the last sum of the weights
     
     def MinimumCut(self):
-        G = Graph(vlist)
+        G = Graph(self.get_vertices())
     
         C_left_min, C_right_min, minCutWeight = G._MinimumCutPhase()
-        while len(G.get_vertices()) > 1:
+        while len(G) > 1:
             C_left, C_right, w = G._MinimumCutPhase()
             # store the cut if it's lighter than the others
             if w < minCutWeight:
