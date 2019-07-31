@@ -52,23 +52,23 @@ class Graph(object):
     
     def __init__(self, vertex_list_arg = None):
         if vertex_list_arg is not None:
-            vertex_dict = {}
-            for v in vertex_list_arg:
-                vertex_dict[v.get_id()] = v
+            vertex_list = vertex_list_arg[:]
         else:
-            vertex_dict = {}          
-        self.vertices = vertex_dict
-        self.nodes = [n for n in vertex_dict]
-        self.num_vertices = len(self.nodes)
+            vertex_list = []            
+        self.vertices = vertex_list
+        self.vertex_dict = vertex_dict
+        self.nodes = [v.get_id() for v in vertex_list]
+        self.num_vertices = len(vertex_list)
         self.merged_vertex_links = {}
         for n in self.nodes:
             self.merged_vertex_links[n] = []
+        vertex_list = [] # reset the vertex list
         
     def __iter__(self):
         return iter(self.vertices)
 
     def get_vertices(self):
-        return [self.vertices[n] for n in self.vertices]
+        return self.vertices
         
     def add_vertex(self, vert: Vertex):
         for v in self.vertices:
@@ -77,7 +77,7 @@ class Graph(object):
         self.num_vertices += 1
         self.nodes.append(vert.get_id())
         self.merged_vertex_links[vert.get_id()] = []
-        self.vertices[vert.get_id()] = vert
+        self.vertices.append(vert)
     
     def del_vertex(self, node):
         if node not in self.get_nodes():
@@ -229,6 +229,7 @@ class Graph(object):
         verts = self.get_vertices()
         G_left = Graph()
         G_right = Graph()
+        for a in C_left:
             
         
         
