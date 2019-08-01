@@ -2,6 +2,30 @@
 """
 Created on Sun Jul 28 23:00:28 2019
 
+Implementation of a Graph class
+For now all the functionality assumes that the graph is nondirectional
+The graph is represented as a dictionary of vertices structured like
+{node_label: class Vertex(node_label), ...}
+
+This allows for easy access to each Vertex without having to iterate over 
+the entire vertex list to be able to access a specific node
+
+Vertices are created with the Vertex class and consister of a dictionary
+and an id (node label) the dictionary consists of all the nodes its connected to
+with weights
+{adjacent_1: weight_1, adjacent_2: weight_2, ...} 
+
+Assumes weight = 1 if no weight is given
+
+Final structure of the graph is represented like this
+
+<node -> {adjacent_1: weight_1, adjacent_2: weight_2, ...}, ... >
+
+When merging a vertex with another it keeps track of all the vertices a vertex
+has been merged with through the merged_vertex_links dictionary. But merging is
+irreversible! For example if 1 has been merged with 2,3,4 the dictionary will show
+{1: [2,3,4]} 
+
 @author: Mark
 """
 
@@ -12,6 +36,12 @@ class Vertex(object):
     
     def set_id(self, node):
         self.id = node
+    
+    def CreateCopy(self):
+        vCopy = Vertex(self.get_id())
+        for adj in self.get_adjacent():
+            vCopy.add_adjacent(adj, self.get_weight(adj))
+        return vCopy
     
     def __str__(self):
         return str(self.id) + ' -> ' + str(self.adjacent)
@@ -29,7 +59,10 @@ class Vertex(object):
         self.adjacent[adj] = weight
         
     def del_adjacent(self, adj):
-        del self.adjacent[adj]
+        try:
+            del self.adjacent[adj]
+        except:
+            pass
         
     def get_adjacent(self):
         return self.adjacent
@@ -62,9 +95,24 @@ class Graph(object):
         self.merged_vertex_links = {}
         for n in self.vertices:
             self.merged_vertex_links[n] = []
+            
+    def CreateCopy(self):
+        """ Creates a copy of the graph """
+        GCopy = Graph()
+        for n in self.vertices:
+            vCopy = self[n].CreateCopy()
+            GCopy.add_vertex(vCopy)
+        return GCopy
         
     def __iter__(self):
         return iter(self.vertices)
+    
+    def __getitem__(self, n):
+        try:
+            v = self.vertices[n]
+        except:
+            raise KeyError("Node " + str(n) + " not in graph")
+        return v
     
     def __len__(self):
         return len(self.vertices)
@@ -73,8 +121,8 @@ class Graph(object):
         return [self.vertices[n] for n in self.vertices]
         
     def add_vertex(self, vert: Vertex):
-        for v in self.vertices:
-            if v.get_id() == vert.get_id():
+        for n in self.vertices:
+            if self[n] == vert.get_id():
                 raise ValueError("Vertex " + str(vert.get_id()) + " already exists")
         self.num_vertices += 1
         self.merged_vertex_links[vert.get_id()] = []
@@ -97,9 +145,9 @@ class Graph(object):
             self.num_vertices -= 1
         except:
             raise KeyError("Node " + str(node) + " does not exist") 
-    
+            
     def get_nodes(self):
-        return self.nodes
+        return [n for n in self.vertices]
     
     def add_edge(self, frm, to, weight = 1, directional = False):
         if frm not in self.get_nodes():
@@ -107,7 +155,7 @@ class Graph(object):
             new_vertex.add_adjacent(to, weight)
             self.add_vertex(new_vertex)
         else:
-            self.get_vertex(frm).add_adjacent(to, weight)
+            self[frm].add_adjacent(to, weight)
         if to not in self.get_nodes():
             new_vertex = Vertex(to)
             if not directional:
@@ -115,7 +163,7 @@ class Graph(object):
             self.add_vertex(new_vertex)
         else:
             if not directional:
-                self.get_vertex(to).add_adjacent(frm, weight)
+                self[to].add_adjacent(frm, weight)
                 
     def __str__(self):
         toPrint = ""
@@ -134,8 +182,8 @@ class Graph(object):
         Deletes self loops
         Deletes the vertex node2
         Merges all the nodes in the vertices i != 1,2 and updates weights accordingly"""
-        v1 = self.get_vertex(node1)
-        v2 = self.get_vertex(node2)
+        v1 = self[node1]
+        v2 = self[node2]
         
         if node2 not in v1.get_adjacent() and node1 not in v2.get_adjacent():
             raise KeyError("Nodes " + str(node1) + " and " + str(node2) + " are not adjacent")
@@ -216,11 +264,11 @@ class Graph(object):
         return C_left, C_right, maxNode_weight_sum # returns the last sum of the weights
     
     def MinimumCut(self):
-        G = Graph(self.get_vertices())
+        GR = self.CreateCopy()
     
-        C_left_min, C_right_min, minCutWeight = G._MinimumCutPhase()
-        while len(G) > 1:
-            C_left, C_right, w = G._MinimumCutPhase()
+        C_left_min, C_right_min, minCutWeight = GR._MinimumCutPhase()
+        while len(GR) > 1:
+            C_left, C_right, w = GR._MinimumCutPhase()
             # store the cut if it's lighter than the others
             if w < minCutWeight:
                 C_left_min, C_right_min, minCutWeight = C_left, C_right, w
@@ -228,83 +276,77 @@ class Graph(object):
         return C_left_min, C_right_min
     
     def cut_to_MinCut(self, C_left, C_right):
-        verts = self.get_vertices()
+        verts = self.vertices
         G_left = Graph()
         G_right = Graph()
+        
+        for cleft in C_left:
+            v = verts[cleft].CreateCopy()
+            for cright in C_right:
+                v.del_adjacent(cright)
+            G_left.add_vertex(v)
+        
+        for cright in C_right:
+            v = verts[cright].CreateCopy()
+            for cleft in C_left:
+                v.del_adjacent(cleft)
+            G_right.add_vertex(v)
             
+        return G_left, G_right
         
         
                 
                         
                 
         
-                
-v1 = Vertex(1)
-v1.add_adjacent(2, 2)
-v1.add_adjacent(5, 3)
 
-v2 = Vertex(2)
-v2.add_adjacent(1, 2)
-v2.add_adjacent(3, 3)
-v2.add_adjacent(5, 2)
-v2.add_adjacent(6, 2)
-
-v3 = Vertex(3)
-v3.add_adjacent(4, 4)
-v3.add_adjacent(7, 2)
-v3.add_adjacent(2, 3)
-
-v4 = Vertex(4)
-v4.add_adjacent(8, 2)
-v4.add_adjacent(7, 2)
-v4.add_adjacent(3, 4)
-
-v5 = Vertex(5)
-v5.add_adjacent(1, 3)
-v5.add_adjacent(2, 2)
-v5.add_adjacent(6, 3)
-
-v6 = Vertex(6)
-v6.add_adjacent(5, 3)
-v6.add_adjacent(2, 2)
-v6.add_adjacent(7, 1)
-
-v7 = Vertex(7)
-v7.add_adjacent(6, 1)
-v7.add_adjacent(3, 2)
-v7.add_adjacent(4, 2)
-v7.add_adjacent(8, 3)
-
-v8 = Vertex(8)
-v8.add_adjacent(4, 2)
-v8.add_adjacent(7, 3)
-
-G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])
-               
-        
-    
-#        
-#        
-#        
+# TEST CODE
+#              
 #v1 = Vertex(1)
-#v1.add_adjacent(2)
-#v1.add_adjacent(3)
+#v1.add_adjacent(2, 2)
+#v1.add_adjacent(5, 3)
 #
 #v2 = Vertex(2)
-#v2.add_adjacent(1)
-#v2.add_adjacent(3)
+#v2.add_adjacent(1, 2)
+#v2.add_adjacent(3, 3)
+#v2.add_adjacent(5, 2)
+#v2.add_adjacent(6, 2)
 #
 #v3 = Vertex(3)
-#v3.add_adjacent(2)
-#v3.add_adjacent(1)
-#v3.add_adjacent(4)
+#v3.add_adjacent(4, 4)
+#v3.add_adjacent(7, 2)
+#v3.add_adjacent(2, 3)
 #
 #v4 = Vertex(4)
-#v4.add_adjacent(3)
+#v4.add_adjacent(8, 2)
+#v4.add_adjacent(7, 2)
+#v4.add_adjacent(3, 4)
 #
-#G = Graph()
-#G.add_vertex(v1)
-#G.add_vertex(v2)
-#G.add_vertex(v3)
-#G.add_vertex(v4)
-#print(G)
+#v5 = Vertex(5)
+#v5.add_adjacent(1, 3)
+#v5.add_adjacent(2, 2)
+#v5.add_adjacent(6, 3)
+#
+#v6 = Vertex(6)
+#v6.add_adjacent(5, 3)
+#v6.add_adjacent(2, 2)
+#v6.add_adjacent(7, 1)
+#
+#v7 = Vertex(7)
+#v7.add_adjacent(6, 1)
+#v7.add_adjacent(3, 2)
+#v7.add_adjacent(4, 2)
+#v7.add_adjacent(8, 3)
+#
+#v8 = Vertex(8)
+#v8.add_adjacent(4, 2)
+#v8.add_adjacent(7, 3)
+#
+#G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])
+#
+#cleft, cright = G.MinimumCut()
+#gleft, gright = G.cut_to_MinCut(cleft, cright)
+#print(cleft, cright)
+#print(gleft)
+#print(gright)
+               
