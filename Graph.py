@@ -29,6 +29,8 @@ irreversible! For example if 1 has been merged with 2,3,4 the dictionary will sh
 @author: Mark
 """
 
+import queue
+
 class Vertex(object):
     def __init__(self, node):
         self.id = node
@@ -185,9 +187,6 @@ class Graph(object):
         v1 = self[node1]
         v2 = self[node2]
         
-        if node2 not in v1.get_adjacent() and node1 not in v2.get_adjacent():
-            raise KeyError("Nodes " + str(node1) + " and " + str(node2) + " are not adjacent")
-        
         # Keep track of merged vertices
         # Add node2 to node1
         self.merged_vertex_links[node1].append(node2)
@@ -263,7 +262,7 @@ class Graph(object):
         self.merge_vertex(A_nodes[-2], A_nodes[-1])
         return C_left, C_right, maxNode_weight_sum # returns the last sum of the weights
     
-    def MinimumCut(self):
+    def MinimumCut(self, print_cut_size = False):
         GR = self.CreateCopy()
     
         C_left_min, C_right_min, minCutWeight = GR._MinimumCutPhase()
@@ -272,8 +271,11 @@ class Graph(object):
             # store the cut if it's lighter than the others
             if w < minCutWeight:
                 C_left_min, C_right_min, minCutWeight = C_left, C_right, w
-                
-        return C_left_min, C_right_min
+        if print_cut_size:        
+            return C_left_min, C_right_min, minCutWeight
+        else:
+            return C_left_min, C_right_min
+            
     
     def cut_to_MinCut(self, C_left, C_right):
         verts = self.vertices
@@ -293,60 +295,83 @@ class Graph(object):
             G_right.add_vertex(v)
             
         return G_left, G_right
-        
-        
-                
-                        
-                
-        
+    
+    def BFS(self, start, goal):
+        """ Returns list of nodes that create shortest path from start to goal""" 
+        if start == goal:
+            return [start]
+        Q = queue.Queue()
+        Q.put((start,[]))
+        explored = {start: True}
+        while not Q.empty():
+            (current, path) = Q.get()
+            currentVert = self.get_vertex(current)
+            for neighbor in currentVert.get_adjacent():
+                if neighbor == goal:
+                    return path + [current, neighbor]
+                if explored.get(neighbor, False) == False:
+                    explored[neighbor] = True
+                    Q.put((neighbor, path + [current]))
+        return None
+            
+            
+v1 = Vertex(1)
+v1.add_adjacent(2, 2)
+v1.add_adjacent(5, 3)
 
-# TEST CODE
-#              
-#v1 = Vertex(1)
-#v1.add_adjacent(2, 2)
-#v1.add_adjacent(5, 3)
-#
-#v2 = Vertex(2)
-#v2.add_adjacent(1, 2)
-#v2.add_adjacent(3, 3)
-#v2.add_adjacent(5, 2)
-#v2.add_adjacent(6, 2)
-#
-#v3 = Vertex(3)
-#v3.add_adjacent(4, 4)
+v2 = Vertex(2)
+v2.add_adjacent(1, 2)
+v2.add_adjacent(3, 3)
+v2.add_adjacent(5, 2)
+v2.add_adjacent(6, 2)
+
+v3 = Vertex(3)
+v3.add_adjacent(4, 4)
 #v3.add_adjacent(7, 2)
-#v3.add_adjacent(2, 3)
-#
-#v4 = Vertex(4)
+v3.add_adjacent(2, 3)
+
+v4 = Vertex(4)
 #v4.add_adjacent(8, 2)
 #v4.add_adjacent(7, 2)
-#v4.add_adjacent(3, 4)
-#
-#v5 = Vertex(5)
-#v5.add_adjacent(1, 3)
-#v5.add_adjacent(2, 2)
-#v5.add_adjacent(6, 3)
-#
-#v6 = Vertex(6)
-#v6.add_adjacent(5, 3)
-#v6.add_adjacent(2, 2)
+v4.add_adjacent(3, 4)
+
+v5 = Vertex(5)
+v5.add_adjacent(1, 3)
+v5.add_adjacent(2, 2)
+v5.add_adjacent(6, 3)
+
+v6 = Vertex(6)
+v6.add_adjacent(5, 3)
+v6.add_adjacent(2, 2)
 #v6.add_adjacent(7, 1)
-#
-#v7 = Vertex(7)
+
+v7 = Vertex(7)
 #v7.add_adjacent(6, 1)
 #v7.add_adjacent(3, 2)
 #v7.add_adjacent(4, 2)
-#v7.add_adjacent(8, 3)
-#
-#v8 = Vertex(8)
+v7.add_adjacent(8, 3)
+
+v8 = Vertex(8)
 #v8.add_adjacent(4, 2)
-#v8.add_adjacent(7, 3)
-#
-#G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])
-#
-#cleft, cright = G.MinimumCut()
-#gleft, gright = G.cut_to_MinCut(cleft, cright)
-#print(cleft, cright)
-#print(gleft)
-#print(gright)
-               
+v8.add_adjacent(7, 3)            
+
+G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
