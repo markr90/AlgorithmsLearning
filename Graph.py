@@ -29,7 +29,8 @@ irreversible! For example if 1 has been merged with 2,3,4 the dictionary will sh
 @author: Mark
 """
 
-import queue
+from collections import deque
+import heapq
 
 class Vertex(object):
     def __init__(self, node):
@@ -98,6 +99,9 @@ class Graph(object):
         for n in self.vertices:
             self.merged_vertex_links[n] = []
             
+    def node_exists(self, node):
+        return (self.vertices.get(node, None) is not None)
+            
     def CreateCopy(self):
         """ Creates a copy of the graph """
         GCopy = Graph()
@@ -123,9 +127,9 @@ class Graph(object):
         return [self.vertices[n] for n in self.vertices]
         
     def add_vertex(self, vert: Vertex):
-        for n in self.vertices:
-            if self[n] == vert.get_id():
-                raise ValueError("Vertex " + str(vert.get_id()) + " already exists")
+        # check if vertex exists
+        if self.node_exists(vert.get_id()):
+            raise ValueError("Vertex with label " + str(vert.get_id()) + " already exists")
         self.num_vertices += 1
         self.merged_vertex_links[vert.get_id()] = []
         self.vertices[vert.get_id()] = vert
@@ -297,21 +301,69 @@ class Graph(object):
         return G_left, G_right
     
     def BFS(self, start, goal):
-        """ Returns list of nodes that create shortest path from start to goal""" 
+        """ Returns list of nodes that create a path from start to goal """ 
+        if (not self.node_exists(start) or not self.node_exists(goal)):
+            raise KeyError("Start " + str(start) + " or goal " +  str(goal) + " node does not exist")
         if start == goal:
             return [start]
-        Q = queue.Queue()
-        Q.put((start,[]))
+        Q = deque()
+        Q.append(start)
+        parentDict = {}
         explored = {start: True}
-        while not Q.empty():
-            (current, path) = Q.get()
+        while len(Q) > 0:
+            current = Q.pop()
             currentVert = self.get_vertex(current)
             for neighbor in currentVert.get_adjacent():
                 if neighbor == goal:
-                    return path + [current, neighbor]
-                if explored.get(neighbor, False) == False:
+                    parent = parentDict[current]
+                    path = [neighbor, current, parent]
+                    while parent != start:
+                        parent = parentDict[parent]
+                        path.append(parent)
+                    path.reverse()
+                    return path
+                if explored.get(neighbor, False) == False:  
+                    parentDict[neighbor] = current
                     explored[neighbor] = True
-                    Q.put((neighbor, path + [current]))
+                    Q.append(neighbor)
+        return None
+
+    def Dijkstra(self, start, goal):
+        """ Returns list of nodes that create shortest path from start to goal
+        @param: start and goal nodes by label
+        @returns: [nodes], distance
+        Returns None if path does not exist"""
+        if (not self.node_exists(start) or not self.node_exists(goal)):
+            raise KeyError("Start " + str(start) + " or goal " +  str(goal) + " node does not exist")
+        if start == goal:
+            return [start]
+        Q = []
+        dist = {}
+        for n in self.get_nodes():
+            dist[n] = float('inf')
+        dist[start] = 0
+        heapq.heappush(Q, (0, start))
+        parentDict = {}
+        while len(Q) > 0:
+            d, current = heapq.heappop(Q)
+            currentVert = self.get_vertex(current)
+            
+            if current == goal:
+                parent = parentDict[current]
+                path = [current, parent]
+                while parent != start:
+                    parent = parentDict[parent]
+                    path.append(parent)
+                path.reverse()
+                return path, d
+            
+            for neighbor in currentVert.get_adjacent():
+                alt = d + currentVert.get_weight(neighbor)
+                if alt < dist[neighbor]:
+                    parentDict[neighbor] = current
+                    dist[neighbor] = alt
+                    heapq.heappush(Q, (alt, neighbor))
+
         return None
             
             
@@ -327,12 +379,12 @@ v2.add_adjacent(6, 2)
 
 v3 = Vertex(3)
 v3.add_adjacent(4, 4)
-#v3.add_adjacent(7, 2)
+v3.add_adjacent(7, 2)
 v3.add_adjacent(2, 3)
 
 v4 = Vertex(4)
-#v4.add_adjacent(8, 2)
-#v4.add_adjacent(7, 2)
+v4.add_adjacent(8, 2)
+v4.add_adjacent(7, 2)
 v4.add_adjacent(3, 4)
 
 v5 = Vertex(5)
@@ -343,20 +395,22 @@ v5.add_adjacent(6, 3)
 v6 = Vertex(6)
 v6.add_adjacent(5, 3)
 v6.add_adjacent(2, 2)
-#v6.add_adjacent(7, 1)
+v6.add_adjacent(7, 1)
 
 v7 = Vertex(7)
-#v7.add_adjacent(6, 1)
-#v7.add_adjacent(3, 2)
-#v7.add_adjacent(4, 2)
+v7.add_adjacent(6, 1)
+v7.add_adjacent(3, 2)
+v7.add_adjacent(4, 2)
 v7.add_adjacent(8, 3)
 
 v8 = Vertex(8)
-#v8.add_adjacent(4, 2)
+v8.add_adjacent(4, 2)
 v8.add_adjacent(7, 3)            
 
 G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])            
             
+
+
             
             
             
