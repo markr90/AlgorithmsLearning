@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 # Ignore this folder
 __pycache__/
+data/
 =======
 # Folders to ignore
 __pycache__

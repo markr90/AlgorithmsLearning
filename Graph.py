@@ -153,13 +153,13 @@ class Graph(object):
         return [n for n in self.vertices]
     
     def add_edge(self, frm, to, weight = 1, directional = False):
-        if frm not in self.get_nodes():
+        if not self.node_exists(frm):
             new_vertex = Vertex(frm)
             new_vertex.set_neighbor(to, weight)
             self.add_vertex(new_vertex)
         else:
             self[frm].set_neighbor(to, weight)
-        if to not in self.get_nodes():
+        if not self.node_exists(to):
             new_vertex = Vertex(to)
             if not directional:
                 new_vertex.set_neighbor(frm, weight)
@@ -304,7 +304,7 @@ class Graph(object):
         if start == goal:
             return [start]
         Q = deque()
-        Q.append(start)
+        Q.appendleft(start)
         parentDict = {}
         explored = {start: True}
         while len(Q) > 0:
@@ -322,7 +322,7 @@ class Graph(object):
                 if explored.get(neighbor, False) == False:  
                     parentDict[neighbor] = current
                     explored[neighbor] = True
-                    Q.append(neighbor)
+                    Q.appendleft(neighbor)
         return None
 
     def Dijkstra(self, start, goal):
@@ -363,17 +363,21 @@ class Graph(object):
 
         return None
     
-    def reverse(self):
+    def reverse(self, verbose = 0):
         """ Reverses the graph, returns a new Graph with all the arcs reversed. Leaves old graph as is."""
         Grev = Graph()
+        nProcessed = 0
         for node in self.get_nodes():
+            if nProcessed % 100000 == 0 and nProcessed > 0 and verbose == 1:
+                print(nProcessed, "nodes reversed")
             nodeVertex = self.get_vertex(node)
             for neighbor in nodeVertex.get_neighbors():
                 Grev.add_edge(neighbor, node, weight = nodeVertex.get_weight(neighbor), directional = True)
+            nProcessed += 1
         return Grev     
     
     
-    def _DFSLoop(self):
+    def _DFSLoop(self, verbose = 0):
         
         """ Subroutine for the kosaraju algorithm 
         Assumption: All nodes are labeled from 1 to n with no with n the number of nodes
@@ -389,19 +393,21 @@ class Graph(object):
         explored = {}
         leaders = {}
         finishing_times = {}
+        nProcessed = 0
         for i in range(n, 0, -1):
-            if explored.get(i, False) == False:
+            if nProcessed % 100000 == 0 and nProcessed > 0 and verbose == 1:
+                print(nProcessed, "nodes processed in DFSLoop")
+            if explored.get(i, None) == None:
                 s = i
                 explored = self._DFSalgo(i, explored = explored, finishing_times = finishing_times, leaders = leaders)
+            nProcessed += 1
         return finishing_times, leaders
     
+    
     def _DFSalgo(self, start, explored = None, finishing_times = None, leaders = None):
-        """ DFS algorithm returns a list dictionary of all the nodes that the DFS
-        has explored in format {i: True, j: True, ...} All entries will be true by definition
-        of them being explored at the end
-        @params: explored, finishing times, and leaders are all dictionaries that keep track of 
-        the leader of a node and when that node was explored in the kosaraju algorithm
-        """
+        
+        stack = deque()
+        stack.append(start)
         global count
         global s
         if not self.node_exists(start):
@@ -412,18 +418,29 @@ class Graph(object):
             finishing_times = {}
         if leaders == None:
             leaders = {}
-        explored[start] = True
-        leaders[start] = s
-        currentVert = self.get_vertex(start)
-        for neighbor in currentVert.get_neighbors():
-            if explored.get(neighbor, False) == False:
-                explored[neighbor] = True
-                self._DFSalgo(neighbor, explored = explored, finishing_times = finishing_times, leaders = leaders)
-        finishing_times[start] = count
-        count += 1     
-        return explored
+        while len(stack) > 0:
+            u = stack[-1]
+            currentVert = self.get_vertex(u)
+            if explored.get(u, None) != None:
+                u = stack.pop()
+                if explored[u] == 'seen':
+                    leaders[u] = s
+                    explored[u] = 'done'
+                    finishing_times[u] = count
+                    count += 1
+            else:
+                explored[u] = 'seen'
+                for neighbor in currentVert.get_neighbors():
+                    if explored.get(neighbor, None) == None:
+                        stack.append(neighbor)
     
-    def SCC(self):
+        return explored
+                
+        
+        
+    
+    
+    def SCC(self, verbose = 0):
         """ Creates list of strongly connected components i.e list of lists 
         Returns [[SCC1], [SCC2], ...] with SCCx the list of nodes that are strongly
         connected to each other
@@ -431,36 +448,49 @@ class Graph(object):
         Keeps a matrix to keep track of all the index labels so that the final
         result can be converted back to node labels that are identical to the original graph
         """
-        Grev = self.reverse()
-        Gori = self.CreateCopy()
+        if verbose == 1: print("Reversing graph")
+        Grev = self.reverse(verbose = verbose)
+        if verbose == 1: print("Reversing done")
+        Gori = Graph()
         # Dictionary to convert back all the labels that are swapped
         convBack = {}
         # calculate the finishing times for each node in the reversed graph
-        finishing_times = Grev._DFSLoop()[0]
-        for node in finishing_times:
-            convBack[finishing_times[node]] = node
-            Gori.get_vertex(node).set_id(finishing_times[node])
-        leaders = Gori._DFSLoop()[1]
+        if verbose == 1: print("Calculating finishing times")
+        finishing_times = Grev._DFSLoop(verbose = verbose)[0]
+        if verbose == 1: print("Calculating done")
+        
+        # Swap labels of original nodes with their finishing times
+        if verbose == 1: print("Building graph with finishing times nodes")
+        nProcessed = 0
+        for v in self.get_vertices():
+            if nProcessed % 100000 == 0 and nProcessed > 0 and verbose == 1:
+                print(nProcessed, "nodes swapped with finishing time labels")
+            vID = v.get_id()
+            convBack[finishing_times[vID]] = vID
+            for neighbor in v.get_neighbors():
+                Gori.add_edge(finishing_times[vID], finishing_times[neighbor], weight = 1, directional = True)
+            nProcessed += 1
+        
+        if verbose == 1: print("Built graph with finishing times as labels")
+        if verbose == 1: print("Calculating leaders for finishing times graph")
+        leaders = Gori._DFSLoop(verbose = verbose)[1]
+        if verbose == 1: print("Calculating done")
+        #print(leaders)
         connected_sets = {}
         # Compute all the sets that have the same leader
+        if verbose == 1: print("Creating list of connected sets")
         for ft in leaders:
             l = convBack[leaders[ft]]
             if len(connected_sets.get(l, [])) > 0:
                 connected_sets[l].append(convBack[ft])
             else:
                 connected_sets[l] = [convBack[ft]]
+        if verbose == 1: print("Strongly connected components search DONE")
         return [connected_sets[i] for i in connected_sets]
+
+
+""" Two test graphs for testing purposes """       
             
-        
-        
-        
-        
-        
-        
-        
-    
-            
-#            
 #v1 = Vertex(1)
 #v1.set_neighbor(2, 2)
 #v1.set_neighbor(5, 3)
@@ -531,7 +561,39 @@ v7.set_neighbor(5)
 
 
 G = Graph([v1, v2, v3, v4, v5, v6, v7])
-    
+
+
+"""Recursive version of the DFS algorithm ( slow and reaches recursion limit early """
+   
+#    # Recursive loop implementation easily reaches recursion limit so need iterative method
+#    def _DFSalgo(self, start, explored = None, finishing_times = None, leaders = None):
+#        """ DFS algorithm returns a list dictionary of all the nodes that the DFS
+#        has explored in format {i: True, j: True, ...} All entries will be true by definition
+#        of them being explored at the end
+#        @params: explored, finishing times, and leaders are all dictionaries that keep track of 
+#        the leader of a node and when that node was explored in the kosaraju algorithm
+#        """
+#        global count
+#        global s
+#        if not self.node_exists(start):
+#            raise KeyError("Start " + str(start) + " node does not exist")
+#        if explored == None:
+#            explored = {}
+#        if finishing_times == None:
+#            finishing_times = {}
+#        if leaders == None:
+#            leaders = {}
+#        explored[start] = True
+#        leaders[start] = s
+#        currentVert = self.get_vertex(start)
+#        for neighbor in currentVert.get_neighbors():
+#            if explored.get(neighbor, False) == False:
+#                explored[neighbor] = True
+#                self._DFSalgo(neighbor, explored = explored, finishing_times = finishing_times, leaders = leaders)
+#        finishing_times[start] = count
+#        count += 1     
+#        return explored
+#    
 
 
 
