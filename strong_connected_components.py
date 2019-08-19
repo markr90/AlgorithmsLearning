@@ -28,7 +28,7 @@ while True:
     lineNo += 1
     
 
-g_scc = G.SCC(verbose = 0)
+g_scc = G.SCC(verbose = 1)
 
 sizes = []
 for scc in g_scc:

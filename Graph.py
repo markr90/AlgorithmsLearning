@@ -333,7 +333,7 @@ class Graph(object):
         if (not self.node_exists(start) or not self.node_exists(goal)):
             raise KeyError("Start " + str(start) + " or goal " +  str(goal) + " node does not exist")
         if start == goal:
-            return [start]
+            return [start], 0
         Q = []
         dist = {}
         for n in self.get_nodes():
@@ -361,7 +361,7 @@ class Graph(object):
                     dist[neighbor] = alt
                     heapq.heappush(Q, (alt, neighbor))
 
-        return None
+        return None, None
     
     def reverse(self, verbose = 0):
         """ Reverses the graph, returns a new Graph with all the arcs reversed. Leaves old graph as is."""
@@ -394,18 +394,23 @@ class Graph(object):
         leaders = {}
         finishing_times = {}
         nProcessed = 0
-        for i in range(n, 0, -1):
+        for node in range(n, 0, -1):
             if nProcessed % 100000 == 0 and nProcessed > 0 and verbose == 1:
                 print(nProcessed, "nodes processed in DFSLoop")
-            if explored.get(i, None) == None:
-                s = i
-                explored = self._DFSalgo(i, explored = explored, finishing_times = finishing_times, leaders = leaders)
+            if explored.get(node, None) == None:
+                explored = self._DFSalgo(node, explored = explored, finishing_times = finishing_times, leaders = leaders)
             nProcessed += 1
         return finishing_times, leaders
     
     
     def _DFSalgo(self, start, explored = None, finishing_times = None, leaders = None):
-        
+        """ Submethod for the DFS loop method. This is the actual DFS algorithm that does 
+        most of the work. 
+        @param: starte node start (node id), default parameters are dictionaries used in the
+        SCC algorithm they track if a node has been seen or is 'done' (i.e all edges have been 
+        explored) finishing times records the loop number where all nodes have been marked as 'done'
+        and leaders records what the starting point was for the search
+        @returns: a dictionary of the explored nodes for subsequent calculations"""
         stack = deque()
         stack.append(start)
         global count
@@ -424,7 +429,7 @@ class Graph(object):
             if explored.get(u, None) != None:
                 u = stack.pop()
                 if explored[u] == 'seen':
-                    leaders[u] = s
+                    leaders[u] = start
                     explored[u] = 'done'
                     finishing_times[u] = count
                     count += 1

@@ -7,3 +7,5 @@
  - Insertion, bubble, merge sort
  - Divide and conquer paradigm
  - Karatsuba multiplication algorithm
+ - Graphs
+ - BFS, DFS, Dijkstra, strongly connected components 
