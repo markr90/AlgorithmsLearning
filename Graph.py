@@ -97,7 +97,7 @@ class Graph(object):
             self.merged_vertex_links[n] = []
             
     def node_exists(self, node):
-        return (self.vertices.get(node, None) is not None)
+        return (self.vertices.get(node) is not None)
             
     def CreateCopy(self):
         """ Creates a copy of the graph """
@@ -440,9 +440,6 @@ class Graph(object):
                         stack.append(neighbor)
     
         return explored
-                
-        
-        
     
     
     def SCC(self, verbose = 0):
@@ -492,83 +489,121 @@ class Graph(object):
                 connected_sets[l] = [convBack[ft]]
         if verbose == 1: print("Strongly connected components search DONE")
         return [connected_sets[i] for i in connected_sets]
+    
+    
+    def MSF_prims(self, verbose = 0):
+        """ Minimum spanning forest using prims algorithm. Returns a list of MSTs of each
+        connected component in the graph. It does this by looping over all the nodes in the graph
+        and if it has added (visited) that node before it skips otherwise it calculates the MST starting
+        from that node. Each edge that is added updates the list of visited nodes (i.e. ones that have already
+        been added to one of the MSTs"""
+        
+        MSTcollection = []
+        explored = set()
+        
+        for node in self.get_nodes():
+            # Loop over all nodes so that a forest can be found instead of just MST of one connected component
+            if node in explored:
+                # skip node if it's already visited (i.e. part of a MST already)
+                continue
+            else:
+                Q = []
+                G = Graph()                                 # initialize MST to be constructed
+                heapq.heappush(Q, (0, node, node))          # initialize edge node <-> node with weight 0
+                explored.add(node)
+                while len(Q) > 0:
+                    w, frm, to = heapq.heappop(Q)           
+                    if G.node_exists(to):                   # if node 'to' already added to graph skip this edge
+                        continue
+                    else:
+                        if frm != to:                       # avoids self loop for very first node
+                            G.add_edge(frm, to, w)
+                        explored.add(to)
+                        tVertex = self.get_vertex(to)       # add all the edges from node 'to' to the heap
+                        for tNeighbor in tVertex.get_neighbors():
+                            tNw = tVertex.get_weight(tNeighbor)
+                            heapq.heappush(Q, (tNw, to, tNeighbor))
+                
+                MSTcollection.append(G)                     # After building that MST append it to MST collection
+        
+        return MSTcollection
 
 
 """ Two test graphs for testing purposes """       
             
-#v1 = Vertex(1)
-#v1.set_neighbor(2, 2)
-#v1.set_neighbor(5, 3)
-#
-#v2 = Vertex(2)
-#v2.set_neighbor(1, 2)
-#v2.set_neighbor(3, 3)
-#v2.set_neighbor(5, 2)
-#v2.set_neighbor(6, 2)
-#
-#v3 = Vertex(3)
-##v3.set_neighbor(4, 4)
-#v3.set_neighbor(7, 2)
-#v3.set_neighbor(2, 3)
-#
-#v4 = Vertex(4)
-##v4.set_neighbor(8, 2)
-##v4.set_neighbor(7, 2)
-##v4.set_neighbor(3, 4)
-#
-#v5 = Vertex(5)
-#v5.set_neighbor(1, 3)
-#v5.set_neighbor(2, 2)
-#v5.set_neighbor(6, 3)
-#
-#v6 = Vertex(6)
-#v6.set_neighbor(5, 3)
-#v6.set_neighbor(2, 2)
-#v6.set_neighbor(7, 1)
-#
-#v7 = Vertex(7)
-#v7.set_neighbor(6, 1)
-#v7.set_neighbor(3, 2)
-##v7.set_neighbor(4, 2)
-#v7.set_neighbor(8, 3)
-#
-#v8 = Vertex(8)
-##v8.set_neighbor(4, 2)
-##v8.set_neighbor(7, 3)            
-#
-#G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])            
-
-
 v1 = Vertex(1)
-v1.set_neighbor(2)
-#v1.set_neighbor(3)
+v1.set_neighbor(2, 2)
+v1.set_neighbor(5, 3)
 
 v2 = Vertex(2)
-#v2.set_neighbor(1)
-v2.set_neighbor(3)
-v2.set_neighbor(4)
+v2.set_neighbor(1, 2)
+v2.set_neighbor(3, 3)
+v2.set_neighbor(5, 2)
+v2.set_neighbor(6, 2)
 
 v3 = Vertex(3)
-v3.set_neighbor(1)
-#v3.set_neighbor(2)
+#v3.set_neighbor(4, 4)
+v3.set_neighbor(7, 2)
+v3.set_neighbor(2, 3)
 
 v4 = Vertex(4)
-v4.set_neighbor(5)
+v4.set_neighbor(8, 2)
+#v4.set_neighbor(7, 2)
+#v4.set_neighbor(3, 4)
 
 v5 = Vertex(5)
-v5.set_neighbor(6)
+v5.set_neighbor(1, 3)
+v5.set_neighbor(2, 2)
+v5.set_neighbor(6, 3)
 
 v6 = Vertex(6)
-v6.set_neighbor(7)
+v6.set_neighbor(5, 3)
+v6.set_neighbor(2, 2)
+v6.set_neighbor(7, 1)
 
 v7 = Vertex(7)
-v7.set_neighbor(5)
+v7.set_neighbor(6, 1)
+v7.set_neighbor(3, 2)
+#v7.set_neighbor(4, 2)
+#v7.set_neighbor(8, 3)
+
+v8 = Vertex(8)
+v8.set_neighbor(4, 2)
+#v8.set_neighbor(7, 3)            
+
+G = Graph([v1, v2, v3, v4, v5, v6, v7, v8])            
 
 
-G = Graph([v1, v2, v3, v4, v5, v6, v7])
+#v1 = Vertex(1)
+#v1.set_neighbor(2)
+##v1.set_neighbor(3)
+#
+#v2 = Vertex(2)
+##v2.set_neighbor(1)
+#v2.set_neighbor(3)
+#v2.set_neighbor(4)
+#
+#v3 = Vertex(3)
+#v3.set_neighbor(1)
+##v3.set_neighbor(2)
+#
+#v4 = Vertex(4)
+#v4.set_neighbor(5)
+#
+#v5 = Vertex(5)
+#v5.set_neighbor(6)
+#
+#v6 = Vertex(6)
+#v6.set_neighbor(7)
+#
+#v7 = Vertex(7)
+#v7.set_neighbor(5)
+#
+#
+#G = Graph([v1, v2, v3, v4, v5, v6, v7])
 
 
-"""Recursive version of the DFS algorithm ( slow and reaches recursion limit early """
+"""Recursive version of the DFS algorithm -> slow and reaches recursion limit early """
    
 #    # Recursive loop implementation easily reaches recursion limit so need iterative method
 #    def _DFSalgo(self, start, explored = None, finishing_times = None, leaders = None):
